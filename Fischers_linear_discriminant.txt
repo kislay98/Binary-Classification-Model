@@ -1,0 +1,447 @@
+#include <bits/stdc++.h>
+#include <fstream>
+using namespace std;
+
+void multiplyMatrices(double firstMatrix[][960], double secondMatrix[][4], double multResult[4][4], int rowFirst, int columnFirst, int rowSecond, int columnSecond);
+bool gluInvertMatrix( double m[16], double invOut[16]);
+double entropy(double leftzero,double leftone,double tzero,double tone);
+
+int main()
+{
+    ifstream inFile;
+    inFile.open("train.txt");
+    int i,j,k;
+    double X[960][4],Y[960];
+    string line;
+    for(i=0;i<960;i++)
+    {
+      getline(inFile,line);
+      stringstream ss(line);
+      for(j=0;j<4;j++)
+      {
+        ss>>X[i][j];
+        if(ss.peek() == ',')  ss.ignore();
+      }
+      ss>>Y[i];
+    }                   //the two matrices are set
+     inFile.close();
+    double m_zero[4]={0,0,0,0},m_one[4]={0,0,0,0},m0_m1[4];
+    double countzero=0,countone=0;
+    for(i=0;i<960;i++)
+    {
+        if(Y[i]==0)
+        {
+            countzero++;
+            for(j=0;j<4;j++)
+            {
+                m_zero[j]+=X[i][j];
+            }
+        }
+        else
+        {
+            countone++;
+            for(j=0;j<4;j++)
+            {
+                m_one[j]+=X[i][j];
+            }
+        }
+    }
+
+    for(j=0;j<4;j++)
+    {
+        m_zero[j]=m_zero[j]/countzero;
+        m_one[j]=m_one[j]/countone;
+        m0_m1[j]=m_zero[j]-m_one[j];
+    }
+                                //m_zero and m_one are also calculated
+                                //m2-m1 also
+
+
+
+    int one=0,zero=0;
+    double tem_one[960][4],tem_zero[960][4],tem_onetrans[4][960],tem_zerotrans[4][960];      // xn-m matrix
+    for(i=0;i<960;i++)
+    {
+        if(Y[i]==0)
+        {
+            for(j=0;j<4;j++)
+            {
+                tem_zero[zero][j]=X[i][j]-m_zero[j];
+            }
+            zero++;
+        }
+        else
+        {
+            for(j=0;j<4;j++)
+            {
+                tem_one[one][j]=X[i][j]-m_one[j];
+            }
+            one++;
+        }
+    }                               //progress to calc sw
+
+     for(i=0;i<countone;i++)
+    {
+        for(j=0;j<4;j++)
+            tem_onetrans[j][i]=tem_one[i][j];
+    }
+
+     for(i=0;i<countzero;i++)
+    {
+        for(j=0;j<4;j++)
+            tem_zerotrans[j][i]=tem_zero[i][j];
+    }                               //tem_zero 960*4   and tem_zerotrans  4*960
+
+    double Swzero[4][4],Sw[4][4],Swone[4][4];
+    multiplyMatrices(tem_zerotrans , tem_zero , Swzero , 4 , countzero , countzero , 4);
+    multiplyMatrices(tem_onetrans , tem_one , Swone , 4 , countone , countone , 4);
+
+
+
+
+     for(i=0;i<4;i++)
+    {
+        for(j=0;j<4;j++)
+            Sw[i][j]  =  Swzero[i][j]  +  Swone[i][j] ;
+    }
+
+                                            // Sw calculated... now do swinverse
+
+                                     // Sw calculated... now do swinverse
+
+    double sw[16],swinv[16],Swinv[4][960];  int c=0;                        // sw in coloumn major
+    for(i=0;i<4;i++)
+    {
+        for(j=0;j<4;j++)
+        {
+            sw[c++]=Sw[j][i];
+        }
+    }
+
+    c=gluInvertMatrix(sw, swinv);
+    c=0;
+    for(i=0;i<4;i++)
+    {
+        for(j=0;j<4;j++)
+        {
+            Swinv[j][i]=swinv[c++];
+        }
+    }
+
+
+
+    double W[4][4],M0_M1[4][4];//   W is 4*1 vector
+    M0_M1[0][0]=m0_m1[0];       M0_M1[1][0]=m0_m1[1];        M0_M1[2][0]=m0_m1[2];        M0_M1[3][0]=m0_m1[3];
+    multiplyMatrices(Swinv , M0_M1 , W , 4 , 4 , 4 , 1);
+
+    double sum=0;
+
+    for(i=0;i<4;i++)
+        sum+=W[i][0]*W[i][0];
+    sum=sqrt(sum);
+
+    double Wtrans[1][4],Xtrans[4][960], r[1][960],T[959];
+    for (i=0;i<4;i++)
+    {
+        Wtrans[0][i]=W[i][0];
+    }
+    for(i=0;i<960;i++)
+    {
+        for(j=0;j<4;j++)
+        {
+            Xtrans[j][i]=X[i][j];
+        }
+    }
+    for(i = 0; i < 1; ++i)       //To find R=Wtrans*Xtrans
+	{
+		for(j = 0; j < 960; ++j)
+		{
+			for(k=0; k<4; ++k)
+			{
+				r[i][j] += Wtrans[i][k] * Xtrans[k][j];
+			}
+		}
+	}
+	int  min_idx;   double t1,t;
+    for (i = 0; i < 959; i++)   //Selection Sort
+    {
+
+        min_idx = i;
+        for (j = i+1; j < 959; j++)
+          if (r[0][j] < r[0][min_idx])
+            min_idx = j;
+
+        t=r[0][min_idx];        t1=Y[min_idx];
+        r[0][min_idx]=r[0][i];  Y[min_idx]=Y[i];
+        r[0][i]=t;                 Y[i]= t1;
+    }
+
+                        //Now we find threshold matrix
+	for(i=0;i<959;i++)
+    {
+        T[i]=(r[0][i]+r[0][i+1])/2.0;
+    }
+    double noofzero=0,noofone=0,e,emin;
+    emin=DBL_MAX;
+    for(i=0;i<959;i++)
+    {
+        if(Y[i]==0) noofzero++;
+        else        noofone++;
+        e=entropy(noofzero,noofone,countzero,countone);
+        if(emin>e)
+        {
+            emin=e;
+            min_idx=i;
+        }
+
+    }
+    cout<<"Minimum Entropy is "<<emin<<endl;
+    double threshold;
+    threshold=T[min_idx];
+    cout<<"Threshold is "<<threshold<<endl;                        //Value of threshold is found ATQ
+                                                                   //We now move to test data
+    ifstream File;
+    File.open("test.txt");
+    double Xtest[412][4],Ytest[412];
+    string line1;
+    for(i=0;i<412;i++)
+    {
+      getline(File,line1);
+      stringstream ss(line1);
+      for(j=0;j<4;j++)
+      {
+        ss>>Xtest[i][j];
+        if(ss.peek() == ',')  ss.ignore();
+      }
+      ss>>Ytest[i];
+    }                   //the two matrices of the test case are set
+     File.close();
+
+
+     double Xtesttrans[4][412],rtest[1][412];
+     for(i=0;i<412;i++)
+    {
+        for(j=0;j<4;j++)
+        {
+            Xtesttrans[j][i]=Xtest[i][j];
+        }
+    }
+
+
+
+    for(i = 0; i < 1; ++i)       //To find R=Wtrans*Xtrans
+	{
+		for(j = 0; j < 960; ++j)
+		{
+			for(k=0; k<4; ++k)
+			{
+				rtest[i][j] += Wtrans[i][k] * Xtesttrans[k][j];
+			}
+		}
+	}
+                //We have calculated r=wtrans*X for test case also
+
+
+
+
+     double tn=0,tp=0,fn=0,fp=0;
+     for(i=0;i<412;i++)
+     {
+         if(rtest[0][i]>threshold)
+         {
+            if(Ytest[i]==0)  tn++;      //zero and zero predicted
+            else             fn++;      //one and zero predicted
+         }
+         else
+         {
+            if(Ytest[i]==0)  fp++;      //zero and one predicted
+            else             tp++;      //one and one predicted
+         }
+    }
+    cout<<"\n\t\tPredicted Flase\tPredicted True\n";
+    cout<<"Actual False";
+    cout<<"\t"<<tn<<"\t\t"<<fp<<"\n";
+    cout<<"Actual True"<<"\t"<<fn<<"\t\t"<<tp;
+    double recall, precision;
+    recall=tp/(tp+fn);
+    precision=tp/(tp+fp);
+    cout<<"\n\nRecall="<<recall<<"\nPrecision="<<precision;
+
+    return 0;
+}
+
+
+void multiplyMatrices(double firstMatrix[][960], double secondMatrix[][4], double mult[4][4], int rowFirst, int columnFirst, int rowSecond, int columnSecond)
+{
+	int i, j, k;
+
+
+	for(i = 0; i < rowFirst; ++i)
+	{
+		for(j = 0; j < columnSecond; ++j)
+		{
+			mult[i][j] = 0;
+		}
+	}
+
+
+	for(i = 0; i < rowFirst; ++i)
+	{
+		for(j = 0; j < columnSecond; ++j)
+		{
+			for(k=0; k<columnFirst; ++k)
+			{
+				mult[i][j] += firstMatrix[i][k] * secondMatrix[k][j];
+			}
+		}
+	}
+}
+
+
+
+
+bool gluInvertMatrix( double m[16], double invOut[16])
+{
+    double inv[16], det;
+    int i;
+
+    inv[0] = m[5]  * m[10] * m[15] -
+             m[5]  * m[11] * m[14] -
+             m[9]  * m[6]  * m[15] +
+             m[9]  * m[7]  * m[14] +
+             m[13] * m[6]  * m[11] -
+             m[13] * m[7]  * m[10];
+
+    inv[4] = -m[4]  * m[10] * m[15] +
+              m[4]  * m[11] * m[14] +
+              m[8]  * m[6]  * m[15] -
+              m[8]  * m[7]  * m[14] -
+              m[12] * m[6]  * m[11] +
+              m[12] * m[7]  * m[10];
+
+    inv[8] = m[4]  * m[9] * m[15] -
+             m[4]  * m[11] * m[13] -
+             m[8]  * m[5] * m[15] +
+             m[8]  * m[7] * m[13] +
+             m[12] * m[5] * m[11] -
+             m[12] * m[7] * m[9];
+
+    inv[12] = -m[4]  * m[9] * m[14] +
+               m[4]  * m[10] * m[13] +
+               m[8]  * m[5] * m[14] -
+               m[8]  * m[6] * m[13] -
+               m[12] * m[5] * m[10] +
+               m[12] * m[6] * m[9];
+
+    inv[1] = -m[1]  * m[10] * m[15] +
+              m[1]  * m[11] * m[14] +
+              m[9]  * m[2] * m[15] -
+              m[9]  * m[3] * m[14] -
+              m[13] * m[2] * m[11] +
+              m[13] * m[3] * m[10];
+
+    inv[5] = m[0]  * m[10] * m[15] -
+             m[0]  * m[11] * m[14] -
+             m[8]  * m[2] * m[15] +
+             m[8]  * m[3] * m[14] +
+             m[12] * m[2] * m[11] -
+             m[12] * m[3] * m[10];
+
+    inv[9] = -m[0]  * m[9] * m[15] +
+              m[0]  * m[11] * m[13] +
+              m[8]  * m[1] * m[15] -
+              m[8]  * m[3] * m[13] -
+              m[12] * m[1] * m[11] +
+              m[12] * m[3] * m[9];
+
+    inv[13] = m[0]  * m[9] * m[14] -
+              m[0]  * m[10] * m[13] -
+              m[8]  * m[1] * m[14] +
+              m[8]  * m[2] * m[13] +
+              m[12] * m[1] * m[10] -
+              m[12] * m[2] * m[9];
+
+    inv[2] = m[1]  * m[6] * m[15] -
+             m[1]  * m[7] * m[14] -
+             m[5]  * m[2] * m[15] +
+             m[5]  * m[3] * m[14] +
+             m[13] * m[2] * m[7] -
+             m[13] * m[3] * m[6];
+
+    inv[6] = -m[0]  * m[6] * m[15] +
+              m[0]  * m[7] * m[14] +
+              m[4]  * m[2] * m[15] -
+              m[4]  * m[3] * m[14] -
+              m[12] * m[2] * m[7] +
+              m[12] * m[3] * m[6];
+
+    inv[10] = m[0]  * m[5] * m[15] -
+              m[0]  * m[7] * m[13] -
+              m[4]  * m[1] * m[15] +
+              m[4]  * m[3] * m[13] +
+              m[12] * m[1] * m[7] -
+              m[12] * m[3] * m[5];
+
+    inv[14] = -m[0]  * m[5] * m[14] +
+               m[0]  * m[6] * m[13] +
+               m[4]  * m[1] * m[14] -
+               m[4]  * m[2] * m[13] -
+               m[12] * m[1] * m[6] +
+               m[12] * m[2] * m[5];
+
+    inv[3] = -m[1] * m[6] * m[11] +
+              m[1] * m[7] * m[10] +
+              m[5] * m[2] * m[11] -
+              m[5] * m[3] * m[10] -
+              m[9] * m[2] * m[7] +
+              m[9] * m[3] * m[6];
+
+    inv[7] = m[0] * m[6] * m[11] -
+             m[0] * m[7] * m[10] -
+             m[4] * m[2] * m[11] +
+             m[4] * m[3] * m[10] +
+             m[8] * m[2] * m[7] -
+             m[8] * m[3] * m[6];
+
+    inv[11] = -m[0] * m[5] * m[11] +
+               m[0] * m[7] * m[9] +
+               m[4] * m[1] * m[11] -
+               m[4] * m[3] * m[9] -
+               m[8] * m[1] * m[7] +
+               m[8] * m[3] * m[5];
+
+    inv[15] = m[0] * m[5] * m[10] -
+              m[0] * m[6] * m[9] -
+              m[4] * m[1] * m[10] +
+              m[4] * m[2] * m[9] +
+              m[8] * m[1] * m[6] -
+              m[8] * m[2] * m[5];
+
+    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+
+    if (det == 0)
+        return false;
+
+    det = 1.0 / det;
+
+    for (i = 0; i < 16; i++)
+        invOut[i] = inv[i] * det;
+
+    return true;
+}
+double entropy(double leftzero,double leftone,double tzero,double tone)
+{
+    double r,rat,el,er,e,rightzero,rightone;
+    rat=leftzero/(leftzero+leftone);
+    rightzero=tzero-leftzero;
+    rightone=tone-leftone;
+    r=rightzero/(rightzero+rightone);
+    if (rat == 0) el=0;
+    else
+        el=-1*(rat*log(rat) + (1-rat)*log(1-rat));
+    if(r==0)    er=0;
+    else
+        er=-1*(r*log(r)     +  (1-r) *  log(1-r));
+    e=er+el;
+    return e;
+}

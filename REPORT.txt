@@ -1,0 +1,43 @@
+***  Assignment 1 of Selected Topics in Computer Science  ***
+
+Members :  Kislay Kumar (2016B5A70537H)
+	   Shipra Dogra (2015A3PS0344H)
+	   Sasanka Vepakomma (2014A3PS0340H)
+
+
+Q1 :  Fisher's Linear Discriminant
+
+Minimum Entropy    :  0.0915407
+Threshold          :  0.00412862
+Recall             :  0.972973
+Precision          :  1
+
+Confusion Matrix
+		Predicted False		Predicted True
+Actual False	227			0
+Actual True	5			180
+		
+		XXX 
+
+Q2 :  Probabilistic Generative Model
+
+#include<Eigen/Dense>  was used for matrix operation 
+Recall             :  1
+Precision          :  0.929648
+
+Confusion Matrix
+		Predicted False		Predicted True
+Actual False	213			14
+Actual True	0			185
+
+	       XXX
+
+Q3 :  Logistic Regression (Probabilistic Discriminative Model)
+
+Recall             :   1
+Precision          :   0.984043
+
+Confusion Matrix
+		Predicted False		Predicted True
+Actual False	224			3
+Actual True	0			185

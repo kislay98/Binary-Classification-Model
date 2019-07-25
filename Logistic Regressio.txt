@@ -1,0 +1,324 @@
+#include<iostream>
+#include<fstream>
+#include<vector>
+#include<string>
+#include<sstream>
+#include<stdlib.h>
+#include<cmath>
+using namespace std;
+
+double func(double a)
+{double e = 2.718281828;
+double f;
+// definition of sigmoid function where a= w0x0 + w1x1 + w2x2 + ......+ wkxk for k features in a given training example
+	f=1.0/(1.0+ pow(e,(-1.0)*a));
+
+return f;
+
+}
+
+
+double grad(vector< vector<double> > data, vector<double> y,int feature)
+{
+											// gradient for every  feature coefficient
+	unsigned int m,i;
+	i=feature;
+	double sum=0;
+	for(m=0;m<data.size();m++)
+	{
+	sum= sum + (y[m]-data[m][5])*data[m][i] ;
+
+	}
+return sum;
+
+}
+
+
+
+int main()
+{
+unsigned int i,j,l,n;
+int counter=0,q;
+string var;
+string var1;
+
+std::vector< std::vector<double> > data;
+
+std::vector<string> one;
+
+
+
+std::vector<double> wt;
+std::vector<double> wt_new;
+std::vector<double> y;
+std::vector<int> t;
+
+double rate=0.0001,a=0,s=0, acc,count=0,z,tn=0,fp=0,tp=0,fn=0;
+
+
+ifstream ip; // path of the file
+ip.open("train.txt");
+
+vector<double> dv ;
+
+vector<double> dv1 ;
+double num;
+
+
+
+while(ip.good())
+{	one.push_back("1");
+
+	getline(ip,var,',');
+	one.push_back(var);
+
+	getline(ip,var,',');
+	one.push_back(var);
+
+	getline(ip,var,',');    // reading data from csv file and storing it in a 2D vector
+	one.push_back(var);
+
+	getline(ip,var,',');
+	one.push_back(var);
+
+	getline(ip,var,'\n');
+	one.push_back(var);
+
+l= one.size();
+
+
+
+
+/*std::transform(one.begin(), one.end(), std::back_inserter(dv),
+               [](const std::string& str) { return std::stoi(str); });*/
+
+
+
+    for (int i=0; i<= 5; i++)
+    {
+      num = atof(one.at(i).c_str());
+     dv.push_back(num);
+    }
+
+	data.push_back(dv);     // coversion of string to float
+	one.clear();
+dv.clear();
+
+}
+
+ip.close();
+
+
+n = data.size();
+
+
+
+
+
+
+// actual Logistic Regression code
+for(i=0;i<=4;i++)
+{
+	wt.push_back(0);
+	wt_new.push_back(0);  // creating two vectors to store values of coeff. initialising to zero
+}
+
+
+for(i=0;i<n;i++)
+{
+y.push_back(0.5);              // initialising the output probability vector
+
+}
+
+
+while(counter<=10000)
+{
+
+
+
+			for(i=0;i<=4;i++)
+			{
+				wt_new[i]= wt[i]- (rate)*(grad(data,y,i));
+				wt[i]=wt_new[i];
+
+
+			}
+		for(z=0;z<n;z++)
+		{	a=0;
+			 for(q=0;q<=4;q++)
+				{
+					a= a+ (wt_new[q]*data[z][q]);
+
+				}
+			y[z]= func(a);
+
+		}
+
+
+
+
+		/*for(j=0;j<n;j++)
+		{
+
+
+
+		s=s-(data[j][4]*log(y[j]) + (1-data[j][4])*log(1-y[j]) );
+
+		}*/
+
+
+//cout<< s << '\n';
+
+counter++;
+}
+
+/*for(j=0;j<n;j++)
+cout<< y[j]<< '\n';*/
+
+
+
+
+/*for(i=0;i<4;i++)
+{
+cout<< wt_new[i] << " ";
+
+}*/
+
+                                                      // code for test data below
+
+
+
+
+
+
+
+data.clear();
+one.clear(); // to clear used vectors
+dv.clear();
+y.clear();
+
+
+
+for(i=0;i<n;i++)
+{
+y.push_back(0);              // initialising the output probability vector
+
+}
+
+		ifstream yp;
+		yp.open("test.txt"); // path of the file
+
+		if(!yp.is_open())
+		cout<< "ERROR: File open" << '\n';
+
+
+
+
+		while(yp.good())
+		{	one.push_back("1");
+
+			getline(yp,var,',');
+			one.push_back(var);
+
+			getline(yp,var,',');
+			one.push_back(var);
+
+			getline(yp,var,',');    // reading data from csv file and storing it in a 2D vector
+			one.push_back(var);
+
+			getline(yp,var,',');
+			one.push_back(var);
+
+			getline(yp,var,'\n');
+			one.push_back(var);
+
+		l= one.size();
+
+
+
+
+		/*std::transform(one.begin(), one.end(), std::back_inserter(dv),
+			       [](const std::string& str) { return std::stoi(str); });*/
+
+
+
+		    for (int i=0; i<= 5; i++)
+		    {
+		      num = atof(one.at(i).c_str());
+		     dv.push_back(num);
+		    }
+
+			data.push_back(dv);     // coversion of string to float
+			one.clear();
+		dv.clear();
+
+		}
+
+		yp.close();
+		n = data.size();
+
+for(i=0;i<n;i++)
+{
+t.push_back(0);              // initialising the final output
+
+}
+
+		for(j=0;j<n;j++)
+		{	a=0;
+			for(i=0;i<=4;i++)
+			{
+
+				a= a+ (wt_new[i]*data[j][i]);
+
+			}
+		y[j]= func(a);
+
+		if(y[j]<0.5)
+		{
+			t[j]=0;
+		}
+
+		else
+		{
+			t[j]=1;
+		}
+
+		}
+
+// calculating accuracy
+
+
+for(i=0;i<n-1;i++)
+{
+
+if(t[i]==data[i][5]&& t[i]==0)
+tn++;
+
+else if(t[i]==data[i][5]&& t[i]==1)
+tp++;
+
+
+else if(t[i]==1 && t[i]!=data[i][5])
+fp++;
+
+else if(t[i]==0 && t[i]!=data[i][5])
+fn++;
+
+}
+
+cout<< "precision" << " "<<(tp/(tp+fp))<< '\n';
+cout<< "recall" << " "<<(tp/(tp+fn))<< '\n';
+cout<< tn << " " << fp <<'\n' ;
+cout<< fn << " " << tp <<'\n' ;
+
+
+
+
+
+
+
+
+
+
+
+}
